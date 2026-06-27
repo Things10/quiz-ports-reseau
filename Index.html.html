@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quiz — Numéros de port réseau</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0B0E14;
+    --bg-card: #11151D;
+    --bg-card-hover: #161B25;
+    --border: #232938;
+    --text: #E8EAED;
+    --text-dim: #8B92A3;
+    --text-faint: #5A6072;
+    --accent: #5DCAA5;
+    --accent-dim: #1D9E75;
+    --accent-bg: rgba(93, 202, 165, 0.08);
+    --wrong: #E0654F;
+    --wrong-bg: rgba(224, 101, 79, 0.08);
+    --amber: #E8B85D;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(rgba(35, 41, 56, 0.4) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(35, 41, 56, 0.4) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 80px; }
+
+  header { margin-bottom: 48px; }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px var(--accent-bg);
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    line-height: 1.15;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle { color: var(--text-dim); font-size: 16px; max-width: 540px; }
+
+  .building-strip {
+    display: flex;
+    gap: 6px;
+    margin: 28px 0 0;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .building-strip .port-chip {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 9px;
+    background: var(--bg-card);
+  }
+
+  #progress-bar-wrap {
+    position: sticky; top: 0; z-index: 10;
+    background: var(--bg);
+    padding: 18px 0 14px;
+    margin-bottom: 8px;
+  }
+  #progress-bar-wrap .meta {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--mono); font-size: 13px; color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+  #progress-bar-wrap .meta .score { color: var(--accent); font-weight: 500; }
+  .bar-track { height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--accent-dim); border-radius: 4px; transition: width 0.4s ease; width: 0%; }
+
+  .scenario {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 28px;
+    margin-bottom: 16px;
+    animation: rise 0.4s ease both;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .scenario .num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .scenario .num .proto-tag {
+    font-family: var(--mono);
+    color: var(--accent);
+    background: var(--accent-bg);
+    padding: 2px 8px;
+    border-radius: 5px;
+    font-size: 11px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .scenario .num .proto-tag.show { opacity: 1; }
+
+  .scenario .text { font-size: 17px; line-height: 1.55; margin-bottom: 22px; }
+
+  .options { display: flex; flex-wrap: wrap; gap: 10px; }
+
+  .opt {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 22px;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .opt:hover:not(:disabled) { border-color: var(--text-dim); background: var(--bg-card-hover); }
+  .opt:active:not(:disabled) { transform: scale(0.97); }
+  .opt:disabled { cursor: default; }
+  .opt.correct { border-color: var(--accent-dim); background: var(--accent-bg); color: var(--accent); }
+  .opt.wrong { border-color: var(--wrong); background: var(--wrong-bg); color: var(--wrong); }
+  .opt.dimmed { opacity: 0.4; }
+
+  .feedback {
+    margin-top: 16px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    display: none;
+  }
+  .feedback.show { display: block; animation: rise 0.3s ease both; }
+  .feedback.ok { background: var(--accent-bg); color: var(--accent); }
+  .feedback.ko { background: var(--wrong-bg); color: var(--wrong); }
+
+  .next-btn {
+    margin-top: 16px;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #0B0E14;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: none;
+  }
+  .next-btn.show { display: inline-block; }
+  .next-btn:hover { background: #6fd6b3; }
+
+  #result {
+    display: none;
+    text-align: center;
+    padding: 56px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-top: 8px;
+  }
+  #result.show { display: block; animation: rise 0.5s ease both; }
+  #result .big-score {
+    font-family: var(--mono);
+    font-size: 64px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  #result .msg { color: var(--text-dim); font-size: 16px; margin-bottom: 28px; }
+  #result button {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 14px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 24px;
+    border-radius: 9px;
+    cursor: pointer;
+  }
+  #result button:hover { border-color: var(--accent-dim); color: var(--accent); }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: center;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .scenario, #result, .feedback { animation: none; }
+  }
+
+  @media (max-width: 600px) {
+    h1 { font-size: 28px; }
+    .scenario { padding: 20px; }
+    .building-strip { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Réseau 1 — module 2 · couche transport</div>
+    <h1>Trouve le bon <span>numéro d'appartement</span></h1>
+    <p class="subtitle">L'adresse IP t'amène au bon immeuble. Le port te dit à quelle porte frapper. Huit scénarios réels — devine le port avant de cliquer.</p>
+    <div class="building-strip">
+      <span class="port-chip">21 ftp</span>
+      <span class="port-chip">22 ssh</span>
+      <span class="port-chip">25 smtp</span>
+      <span class="port-chip">53 dns</span>
+      <span class="port-chip">67 dhcp</span>
+      <span class="port-chip">80 http</span>
+      <span class="port-chip">110 pop3</span>
+      <span class="port-chip">143 imap</span>
+      <span class="port-chip">443 https</span>
+      <span class="port-chip">445 smb</span>
+      <span class="port-chip">3389 rdp</span>
+    </div>
+  </header>
+
+  <div id="progress-bar-wrap">
+    <div class="meta">
+      <span>Scénario <span id="current-num">1</span> / <span id="total-num">8</span></span>
+      <span class="score">Score : <span id="score-num">0</span> / 8</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+  </div>
+
+  <div id="scenarios"></div>
+
+  <div id="result">
+    <div class="big-score" id="final-score">0/8</div>
+    <div class="msg" id="final-msg">Refais le quiz pour mémoriser les ports.</div>
+    <button onclick="resetQuiz()">Recommencer le quiz</button>
+  </div>
+
+  <footer>support de cours — réseau 1, module 2 — encapsulation, pdu et ports</footer>
+</div>
+
+<script>
+const SCENARIOS = [
+  { text: "Un administrateur se connecte à distance et en toute sécurité à un serveur Linux pour exécuter des commandes.", opts: ["21", "22", "23", "80"], ans: "22", proto: "SSH" },
+  { text: "Un employé envoie un email depuis son client de messagerie (Outlook, Thunderbird).", opts: ["25", "53", "80", "110"], ans: "25", proto: "SMTP" },
+  { text: "Un visiteur tape l'adresse d'un site qui commence par https:// dans son navigateur.", opts: ["80", "443", "8080", "21"], ans: "443", proto: "HTTPS" },
+  { text: "Un PC demande la traduction du nom \"google.com\" en adresse IP.", opts: ["53", "67", "80", "445"], ans: "53", proto: "DNS" },
+  { text: "Un technicien se connecte au Bureau à distance d'un serveur Windows.", opts: ["22", "445", "3389", "443"], ans: "3389", proto: "RDP" },
+  { text: "Un nouveau PC se branche sur le réseau et demande automatiquement une adresse IP.", opts: ["53", "67", "80", "110"], ans: "67", proto: "DHCP" },
+  { text: "Deux PC en réseau poste à poste partagent un dossier Windows.", opts: ["21", "80", "443", "445"], ans: "445", proto: "SMB" },
+  { text: "Un client de messagerie synchronise ses dossiers de boîte mail avec le serveur, sans tout télécharger.", opts: ["25", "110", "143", "443"], ans: "143", proto: "IMAP" },
+];
+
+let current = 0;
+let score = 0;
+let locked = false;
+
+function renderScenario() {
+  const s = SCENARIOS[current];
+  const container = document.getElementById('scenarios');
+  locked = false;
+
+  let html = `<div class="scenario" key="${current}">`;
+  html += `<div class="num">Scénario ${current + 1} <span class="proto-tag" id="proto-tag"></span></div>`;
+  html += `<div class="text">${s.text}</div>`;
+  html += `<div class="options" id="options">`;
+  s.opts.forEach(o => {
+    html += `<button class="opt" data-val="${o}" onclick="answer('${o}')">${o}</button>`;
+  });
+  html += `</div>`;
+  html += `<div class="feedback" id="feedback"></div>`;
+  html += `<button class="next-btn" id="next-btn" onclick="nextScenario()">${current === SCENARIOS.length - 1 ? 'Voir le résultat' : 'Scénario suivant'}</button>`;
+  html += `</div>`;
+
+  container.innerHTML = html;
+  updateProgress();
+}
+
+function answer(val) {
+  if (locked) return;
+  locked = true;
+  const s = SCENARIOS[current];
+  const ok = val === s.ans;
+  if (ok) score++;
+
+  document.querySelectorAll('.opt').forEach(btn => {
+    btn.disabled = true;
+    const v = btn.getAttribute('data-val');
+    if (v === s.ans) btn.classList.add('correct');
+    else if (v === val) btn.classList.add('wrong');
+    else btn.classList.add('dimmed');
+  });
+
+  const protoTag = document.getElementById('proto-tag');
+  protoTag.textContent = s.proto;
+  protoTag.classList.add('show');
+
+  const fb = document.getElementById('feedback');
+  fb.classList.add('show', ok ? 'ok' : 'ko');
+  fb.textContent = ok
+    ? `Correct — port ${s.ans} (${s.proto}).`
+    : `Pas tout à fait — le bon port était ${s.ans} (${s.proto}).`;
+
+  document.getElementById('next-btn').classList.add('show');
+  updateProgress();
+}
+
+function nextScenario() {
+  if (current === SCENARIOS.length - 1) {
+    showResult();
+    return;
+  }
+  current++;
+  renderScenario();
+}
+
+function updateProgress() {
+  document.getElementById('current-num').textContent = current + 1;
+  document.getElementById('total-num').textContent = SCENARIOS.length;
+  document.getElementById('score-num').textContent = score;
+  const pct = (current / SCENARIOS.length) * 100 + (locked ? (100 / SCENARIOS.length) : 0);
+  document.getElementById('bar-fill').style.width = Math.min(pct, 100) + '%';
+}
+
+function showResult() {
+  document.getElementById('scenarios').innerHTML = '';
+  document.getElementById('progress-bar-wrap').style.display = 'none';
+  const pct = Math.round((score / SCENARIOS.length) * 100);
+  let msg = "Excellent — ces ports sont bien ancrés.";
+  if (pct < 50) msg = "Revoir le tableau des ports avant de continuer.";
+  else if (pct < 80) msg = "Pas mal — quelques ports à revoir encore.";
+
+  document.getElementById('final-score').textContent = `${score}/${SCENARIOS.length}`;
+  document.getElementById('final-msg').textContent = msg;
+  document.getElementById('result').classList.add('show');
+}
+
+function resetQuiz() {
+  current = 0; score = 0; locked = false;
+  document.getElementById('result').classList.remove('show');
+  document.getElementById('progress-bar-wrap').style.display = 'block';
+  renderScenario();
+}
+
+renderScenario();
+</script>
+
+</body>
+</html>
